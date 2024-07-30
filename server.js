@@ -4,11 +4,16 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import mongoose from "mongoose";
+import methodOverride from "method-override";
+import morgan from "morgan";
 import Fruit from './models/fruit.js';
+
 
 const app = express();
 
 app.use(express.urlencoded({ extended: false })) 
+app.use(methodOverride("_method")); 
+app.use(morgan("dev")); 
 
 mongoose.connect(process.env.MONGODB_URI);
 
@@ -32,9 +37,24 @@ app.post("/fruits", async (req, res) => {
     req.body.isReadyToEat = false;
   }
   await Fruit.create(req.body);
-  res.redirect("/fruits/new");
+  res.redirect("/fruits");
 });
 
+// GET /fruits
+app.get("/fruits", async (req, res) => {
+  const allFruits = await Fruit.find();
+  res.render("fruits/index.ejs", { fruits: allFruits });
+});
+
+app.get("/fruits/:fruitId", async (req, res) => {
+  const foundFruit = await Fruit.findById(req.params.fruitId);
+  res.render("fruits/show.ejs", { fruit: foundFruit });
+});
+
+app.delete("/fruits/:fruitId", async (req, res) => {
+  await Fruit.findByIdAndDelete(req.params.fruitId);
+  res.redirect("/fruits");
+});
 
 mongoose.connection.on("connected", () => {
   console.log(`Connected to MongoDB ${mongoose.connection.name}.`);
